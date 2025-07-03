@@ -1,4 +1,3 @@
-
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Text3D, Float, Stars, Cloud } from '@react-three/drei';
 import { useRef } from 'react';
@@ -145,7 +144,7 @@ export default function Scene3D() {
         <Bird position={[-3, 6, 1]} />
         <Bird position={[8, 2, -1]} />
         
-        <Cloud opacity={0.3} speed={0.4} width={10} depth={1.5} segments={20} />
+        <Cloud opacity={0.3} speed={0.4} concentrate="outside" growth={4} segments={40} />
         
         <Float speed={0.5} rotationIntensity={0.1} floatIntensity={0.5}>
           <Text3D
