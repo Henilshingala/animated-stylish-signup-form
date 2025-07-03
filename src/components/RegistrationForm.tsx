@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -248,7 +247,7 @@ const RegistrationForm = () => {
         </CardContent>
       </Card>
       
-      <style jsx>{`
+      <style>{`
         .registration-container {
           position: relative;
           width: 100%;
