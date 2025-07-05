@@ -10,7 +10,6 @@ import { toast } from 'sonner';
 
 const RegistrationForm = () => {
   const [mode, setMode] = useState<'register' | 'login' | 'otp' | 'forgot' | 'reset'>('register');
-  const [activeTab, setActiveTab] = useState('personal');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -21,7 +20,12 @@ const RegistrationForm = () => {
     phone: '',
     password: '',
     confirmPassword: '',
-    address: '',
+    streetNumber: '',
+    streetName: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    country: '',
     birthDate: ''
   });
   const [loginData, setLoginData] = useState({
@@ -36,38 +40,27 @@ const RegistrationForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [otpEmail, setOtpEmail] = useState('');
 
-  // Auto-switching logic for tabs
-  useEffect(() => {
-    if (mode === 'register') {
-      const personalComplete = formData.firstName && formData.lastName && formData.birthDate && formData.password;
-      if (personalComplete && activeTab === 'personal') {
-        setActiveTab('contact');
-      }
-    }
-  }, [formData, activeTab, mode]);
-
   // Form validation
-  const getPersonalMissingFields = () => {
+  const getMissingFields = () => {
     const missing = [];
     if (!formData.firstName) missing.push('First Name');
     if (!formData.lastName) missing.push('Last Name');
-    if (!formData.birthDate) missing.push('Birth Date');
-    if (!formData.password) missing.push('Password');
-    return missing;
-  };
-
-  const getContactMissingFields = () => {
-    const missing = [];
     if (!formData.email) missing.push('Email');
     if (!formData.phone) missing.push('Phone');
-    if (!formData.address) missing.push('Address');
+    if (!formData.streetNumber) missing.push('Street Number');
+    if (!formData.streetName) missing.push('Street Name');
+    if (!formData.city) missing.push('City');
+    if (!formData.state) missing.push('State');
+    if (!formData.zipCode) missing.push('Zip Code');
+    if (!formData.country) missing.push('Country');
+    if (!formData.birthDate) missing.push('Birth Date');
+    if (!formData.password) missing.push('Password');
     if (!formData.confirmPassword) missing.push('Confirm Password');
     return missing;
   };
 
   const isFormComplete = () => {
-    return getPersonalMissingFields().length === 0 && getContactMissingFields().length === 0 && 
-           formData.password === formData.confirmPassword;
+    return getMissingFields().length === 0 && formData.password === formData.confirmPassword;
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,10 +161,8 @@ const RegistrationForm = () => {
     e.preventDefault();
     
     if (!isFormComplete()) {
-      const personalMissing = getPersonalMissingFields();
-      const contactMissing = getContactMissingFields();
-      const allMissing = [...personalMissing, ...contactMissing];
-      toast.error(`Please fill in missing fields: ${allMissing.join(', ')}`);
+      const missing = getMissingFields();
+      toast.error(`Please fill in missing fields: ${missing.join(', ')}`);
       return;
     }
 
@@ -217,201 +208,267 @@ const RegistrationForm = () => {
         <CardContent className="card-content">
           {/* Registration Form */}
           {mode === 'register' && (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="tabs-list">
-                <TabsTrigger value="personal" className="tab-trigger">
-                  Personal Info
-                </TabsTrigger>
-                <TabsTrigger value="contact" className="tab-trigger">
-                  Contact Details
-                </TabsTrigger>
-              </TabsList>
-              
-              <form onSubmit={handleSubmit} className="form-container">
-                <TabsContent value="personal" className="tab-content">
-                  <div className="input-grid">
-                    <div className="input-group">
-                      <Label htmlFor="firstName" className="input-label">
-                        <User className="label-icon" />
-                        First Name
-                      </Label>
-                      <Input
-                        id="firstName"
-                        name="firstName"
-                        value={formData.firstName}
-                        onChange={handleInputChange}
-                        className="animated-input"
-                        placeholder="Enter your first name"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="input-group">
-                      <Label htmlFor="lastName" className="input-label">
-                        <User className="label-icon" />
-                        Last Name
-                      </Label>
-                      <Input
-                        id="lastName"
-                        name="lastName"
-                        value={formData.lastName}
-                        onChange={handleInputChange}
-                        className="animated-input"
-                        placeholder="Enter your last name"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="input-group">
-                      <Label htmlFor="birthDate" className="input-label">
-                        <Calendar className="label-icon" />
-                        Birth Date
-                      </Label>
-                      <Input
-                        id="birthDate"
-                        name="birthDate"
-                        type="date"
-                        value={formData.birthDate}
-                        onChange={handleInputChange}
-                        className="animated-input"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="input-group password-group">
-                      <Label htmlFor="password" className="input-label">
-                        <Lock className="label-icon" />
-                        Password
-                      </Label>
-                      <div className="password-input-container">
-                        <Input
-                          id="password"
-                          name="password"
-                          type={showPassword ? "text" : "password"}
-                          value={formData.password}
-                          onChange={handleInputChange}
-                          className="animated-input password-input"
-                          placeholder="Create a strong password"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="password-toggle"
-                        >
-                          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="contact" className="tab-content">
-                  <div className="input-grid">
-                    <div className="input-group">
-                      <Label htmlFor="email" className="input-label">
-                        <Mail className="label-icon" />
-                        Email Address
-                      </Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        className="animated-input"
-                        placeholder="Enter your email"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="input-group">
-                      <Label htmlFor="phone" className="input-label">
-                        <Phone className="label-icon" />
-                        Phone Number
-                      </Label>
-                      <Input
-                        id="phone"
-                        name="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        className="animated-input"
-                        placeholder="Enter your phone number"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="input-group">
-                      <Label htmlFor="address" className="input-label">
-                        <MapPin className="label-icon" />
-                        Address
-                      </Label>
-                      <Input
-                        id="address"
-                        name="address"
-                        value={formData.address}
-                        onChange={handleInputChange}
-                        className="animated-input"
-                        placeholder="Enter your address"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="input-group password-group">
-                      <Label htmlFor="confirmPassword" className="input-label">
-                        <Lock className="label-icon" />
-                        Confirm Password
-                      </Label>
-                      <div className="password-input-container">
-                        <Input
-                          id="confirmPassword"
-                          name="confirmPassword"
-                          type={showConfirmPassword ? "text" : "password"}
-                          value={formData.confirmPassword}
-                          onChange={handleInputChange}
-                          className="animated-input password-input"
-                          placeholder="Confirm your password"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="password-toggle"
-                        >
-                          {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-                
-                <Button 
-                  type="submit" 
-                  className="submit-button"
-                  disabled={isSubmitting || !isFormComplete()}
-                >
-                  {isSubmitting ? (
-                    <div className="loading-spinner"></div>
-                  ) : (
-                    "Create Account"
-                  )}
-                </Button>
-                
-                <div className="auth-switch">
-                  <p>Already have an account? 
-                    <Button 
-                      type="button" 
-                      variant="link" 
-                      onClick={() => setMode('login')}
-                      className="switch-button"
-                    >
-                      Sign In
-                    </Button>
-                  </p>
+            <form onSubmit={handleSubmit} className="form-container">
+              <div className="input-grid">
+                {/* Personal Information */}
+                <div className="input-group">
+                  <Label htmlFor="firstName" className="input-label">
+                    <User className="label-icon" />
+                    First Name
+                  </Label>
+                  <Input
+                    id="firstName"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleInputChange}
+                    className="animated-input"
+                    placeholder="Enter your first name"
+                    required
+                  />
                 </div>
-              </form>
-            </Tabs>
+                
+                <div className="input-group">
+                  <Label htmlFor="lastName" className="input-label">
+                    <User className="label-icon" />
+                    Last Name
+                  </Label>
+                  <Input
+                    id="lastName"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleInputChange}
+                    className="animated-input"
+                    placeholder="Enter your last name"
+                    required
+                  />
+                </div>
+                
+                <div className="input-group">
+                  <Label htmlFor="email" className="input-label">
+                    <Mail className="label-icon" />
+                    Email Address
+                  </Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="animated-input"
+                    placeholder="Enter your email"
+                    required
+                  />
+                </div>
+                
+                <div className="input-group">
+                  <Label htmlFor="phone" className="input-label">
+                    <Phone className="label-icon" />
+                    Phone Number
+                  </Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    className="animated-input"
+                    placeholder="Enter your phone number"
+                    required
+                  />
+                </div>
+                
+                <div className="input-group">
+                  <Label htmlFor="birthDate" className="input-label">
+                    <Calendar className="label-icon" />
+                    Birth Date
+                  </Label>
+                  <Input
+                    id="birthDate"
+                    name="birthDate"
+                    type="date"
+                    value={formData.birthDate}
+                    onChange={handleInputChange}
+                    className="animated-input"
+                    required
+                  />
+                </div>
+                
+                {/* Address Information */}
+                <div className="input-group">
+                  <Label htmlFor="streetNumber" className="input-label">
+                    <MapPin className="label-icon" />
+                    Street Number
+                  </Label>
+                  <Input
+                    id="streetNumber"
+                    name="streetNumber"
+                    value={formData.streetNumber}
+                    onChange={handleInputChange}
+                    className="animated-input"
+                    placeholder="Enter street number"
+                    required
+                  />
+                </div>
+                
+                <div className="input-group">
+                  <Label htmlFor="streetName" className="input-label">
+                    <MapPin className="label-icon" />
+                    Street Name
+                  </Label>
+                  <Input
+                    id="streetName"
+                    name="streetName"
+                    value={formData.streetName}
+                    onChange={handleInputChange}
+                    className="animated-input"
+                    placeholder="Enter street name"
+                    required
+                  />
+                </div>
+                
+                <div className="input-group">
+                  <Label htmlFor="city" className="input-label">
+                    <MapPin className="label-icon" />
+                    City
+                  </Label>
+                  <Input
+                    id="city"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleInputChange}
+                    className="animated-input"
+                    placeholder="Enter city"
+                    required
+                  />
+                </div>
+                
+                <div className="input-group">
+                  <Label htmlFor="state" className="input-label">
+                    <MapPin className="label-icon" />
+                    State/Province
+                  </Label>
+                  <Input
+                    id="state"
+                    name="state"
+                    value={formData.state}
+                    onChange={handleInputChange}
+                    className="animated-input"
+                    placeholder="Enter state or province"
+                    required
+                  />
+                </div>
+                
+                <div className="input-group">
+                  <Label htmlFor="zipCode" className="input-label">
+                    <MapPin className="label-icon" />
+                    Zip Code
+                  </Label>
+                  <Input
+                    id="zipCode"
+                    name="zipCode"
+                    value={formData.zipCode}
+                    onChange={handleInputChange}
+                    className="animated-input"
+                    placeholder="Enter zip code"
+                    required
+                  />
+                </div>
+                
+                <div className="input-group">
+                  <Label htmlFor="country" className="input-label">
+                    <MapPin className="label-icon" />
+                    Country
+                  </Label>
+                  <Input
+                    id="country"
+                    name="country"
+                    value={formData.country}
+                    onChange={handleInputChange}
+                    className="animated-input"
+                    placeholder="Enter country"
+                    required
+                  />
+                </div>
+                
+                {/* Password Fields */}
+                <div className="input-group password-group">
+                  <Label htmlFor="password" className="input-label">
+                    <Lock className="label-icon" />
+                    Password
+                  </Label>
+                  <div className="password-input-container">
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      className="animated-input password-input"
+                      placeholder="Create a strong password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="password-toggle"
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="input-group password-group">
+                  <Label htmlFor="confirmPassword" className="input-label">
+                    <Lock className="label-icon" />
+                    Confirm Password
+                  </Label>
+                  <div className="password-input-container">
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                      className="animated-input password-input"
+                      placeholder="Confirm your password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="password-toggle"
+                    >
+                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="submit-button"
+                disabled={isSubmitting || !isFormComplete()}
+              >
+                {isSubmitting ? (
+                  <div className="loading-spinner"></div>
+                ) : (
+                  "Create Account"
+                )}
+              </Button>
+              
+              <div className="auth-switch">
+                <p>Already have an account? 
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    onClick={() => setMode('login')}
+                    className="switch-button"
+                  >
+                    Sign In
+                  </Button>
+                </p>
+              </div>
+            </form>
           )}
 
           {/* Login Form */}
