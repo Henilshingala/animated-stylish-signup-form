@@ -1,15 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { User, Mail, Lock, Phone, MapPin, Calendar, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 const RegistrationForm = () => {
+  const [mode, setMode] = useState<'register' | 'login' | 'otp' | 'forgot' | 'reset'>('register');
+  const [activeTab, setActiveTab] = useState('personal');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -20,7 +24,51 @@ const RegistrationForm = () => {
     address: '',
     birthDate: ''
   });
+  const [loginData, setLoginData] = useState({
+    email: '',
+    password: ''
+  });
+  const [resetData, setResetData] = useState({
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [otp, setOtp] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [otpEmail, setOtpEmail] = useState('');
+
+  // Auto-switching logic for tabs
+  useEffect(() => {
+    if (mode === 'register') {
+      const personalComplete = formData.firstName && formData.lastName && formData.birthDate && formData.password;
+      if (personalComplete && activeTab === 'personal') {
+        setActiveTab('contact');
+      }
+    }
+  }, [formData, activeTab, mode]);
+
+  // Form validation
+  const getPersonalMissingFields = () => {
+    const missing = [];
+    if (!formData.firstName) missing.push('First Name');
+    if (!formData.lastName) missing.push('Last Name');
+    if (!formData.birthDate) missing.push('Birth Date');
+    if (!formData.password) missing.push('Password');
+    return missing;
+  };
+
+  const getContactMissingFields = () => {
+    const missing = [];
+    if (!formData.email) missing.push('Email');
+    if (!formData.phone) missing.push('Phone');
+    if (!formData.address) missing.push('Address');
+    if (!formData.confirmPassword) missing.push('Confirm Password');
+    return missing;
+  };
+
+  const isFormComplete = () => {
+    return getPersonalMissingFields().length === 0 && getContactMissingFields().length === 0 && 
+           formData.password === formData.confirmPassword;
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -30,13 +78,110 @@ const RegistrationForm = () => {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setLoginData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleResetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setResetData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const sendOTP = async (email: string) => {
+    setIsSubmitting(true);
+    // Simulate OTP sending
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    const generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log('Generated OTP:', generatedOTP); // In real app, this would be sent via email
+    toast.success(`OTP sent to ${email}! (Check console for demo OTP)`);
+    setOtpEmail(email);
+    setIsSubmitting(false);
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginData.email || !loginData.password) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+    await sendOTP(loginData.email);
+    setMode('otp');
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginData.email) {
+      toast.error('Please enter your email address');
+      return;
+    }
+    await sendOTP(loginData.email);
+    setMode('forgot');
+  };
+
+  const handleOTPVerification = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Simulate API call
+    // Demo OTP verification (in real app, verify against backend)
+    if (otp.length === 6) {
+      if (mode === 'otp') {
+        toast.success("Login successful! Welcome back!");
+        setMode('register');
+      } else if (mode === 'forgot') {
+        toast.success("OTP verified! Set your new password");
+        setMode('reset');
+      }
+    } else {
+      toast.error("Invalid OTP. Please try again.");
+    }
+    setIsSubmitting(false);
+  };
+
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetData.newPassword || !resetData.confirmPassword) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+    if (resetData.newPassword !== resetData.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    setIsSubmitting(true);
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    toast.success("Password reset successful! You can now login with your new password");
+    setMode('login');
+    setResetData({ newPassword: '', confirmPassword: '' });
+    setOtp('');
+    setIsSubmitting(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!isFormComplete()) {
+      const personalMissing = getPersonalMissingFields();
+      const contactMissing = getContactMissingFields();
+      const allMissing = [...personalMissing, ...contactMissing];
+      toast.error(`Please fill in missing fields: ${allMissing.join(', ')}`);
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+
+    setIsSubmitting(true);
     await new Promise(resolve => setTimeout(resolve, 2000));
-    
     toast.success("Registration successful! Welcome to our platform!");
     setIsSubmitting(false);
   };
@@ -54,182 +199,268 @@ const RegistrationForm = () => {
       <Card className="registration-card">
         <CardHeader className="card-header">
           <CardTitle className="card-title">
-            Create Your Account
+            {mode === 'register' && 'Create Your Account'}
+            {mode === 'login' && 'Welcome Back'}
+            {mode === 'otp' && 'Verify OTP'}
+            {mode === 'forgot' && 'Verify Email'}
+            {mode === 'reset' && 'Reset Password'}
           </CardTitle>
           <CardDescription className="card-description">
-            Join our community and unlock amazing features
+            {mode === 'register' && 'Join our community and unlock amazing features'}
+            {mode === 'login' && 'Sign in to access your account'}
+            {mode === 'otp' && `Enter the OTP sent to ${otpEmail}`}
+            {mode === 'forgot' && 'Enter OTP to reset your password'}
+            {mode === 'reset' && 'Create a new password for your account'}
           </CardDescription>
         </CardHeader>
         
         <CardContent className="card-content">
-          <Tabs defaultValue="personal" className="w-full">
-            <TabsList className="tabs-list">
-              <TabsTrigger value="personal" className="tab-trigger">
-                Personal Info
-              </TabsTrigger>
-              <TabsTrigger value="contact" className="tab-trigger">
-                Contact Details
-              </TabsTrigger>
-            </TabsList>
-            
-            <form onSubmit={handleSubmit} className="form-container">
-              <TabsContent value="personal" className="tab-content">
-                <div className="input-grid">
-                  <div className="input-group">
-                    <Label htmlFor="firstName" className="input-label">
-                      <User className="label-icon" />
-                      First Name
-                    </Label>
-                    <Input
-                      id="firstName"
-                      name="firstName"
-                      value={formData.firstName}
-                      onChange={handleInputChange}
-                      className="animated-input"
-                      placeholder="Enter your first name"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="input-group">
-                    <Label htmlFor="lastName" className="input-label">
-                      <User className="label-icon" />
-                      Last Name
-                    </Label>
-                    <Input
-                      id="lastName"
-                      name="lastName"
-                      value={formData.lastName}
-                      onChange={handleInputChange}
-                      className="animated-input"
-                      placeholder="Enter your last name"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="input-group">
-                    <Label htmlFor="birthDate" className="input-label">
-                      <Calendar className="label-icon" />
-                      Birth Date
-                    </Label>
-                    <Input
-                      id="birthDate"
-                      name="birthDate"
-                      type="date"
-                      value={formData.birthDate}
-                      onChange={handleInputChange}
-                      className="animated-input"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="input-group password-group">
-                    <Label htmlFor="password" className="input-label">
-                      <Lock className="label-icon" />
-                      Password
-                    </Label>
-                    <div className="password-input-container">
-                      <Input
-                        id="password"
-                        name="password"
-                        type={showPassword ? "text" : "password"}
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        className="animated-input password-input"
-                        placeholder="Create a strong password"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="password-toggle"
-                      >
-                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
+          {/* Registration Form */}
+          {mode === 'register' && (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="tabs-list">
+                <TabsTrigger value="personal" className="tab-trigger">
+                  Personal Info
+                </TabsTrigger>
+                <TabsTrigger value="contact" className="tab-trigger">
+                  Contact Details
+                </TabsTrigger>
+              </TabsList>
               
-              <TabsContent value="contact" className="tab-content">
-                <div className="input-grid">
-                  <div className="input-group">
-                    <Label htmlFor="email" className="input-label">
-                      <Mail className="label-icon" />
-                      Email Address
-                    </Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className="animated-input"
-                      placeholder="Enter your email"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="input-group">
-                    <Label htmlFor="phone" className="input-label">
-                      <Phone className="label-icon" />
-                      Phone Number
-                    </Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      className="animated-input"
-                      placeholder="Enter your phone number"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="input-group">
-                    <Label htmlFor="address" className="input-label">
-                      <MapPin className="label-icon" />
-                      Address
-                    </Label>
-                    <Input
-                      id="address"
-                      name="address"
-                      value={formData.address}
-                      onChange={handleInputChange}
-                      className="animated-input"
-                      placeholder="Enter your address"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="input-group password-group">
-                    <Label htmlFor="confirmPassword" className="input-label">
-                      <Lock className="label-icon" />
-                      Confirm Password
-                    </Label>
-                    <div className="password-input-container">
+              <form onSubmit={handleSubmit} className="form-container">
+                <TabsContent value="personal" className="tab-content">
+                  <div className="input-grid">
+                    <div className="input-group">
+                      <Label htmlFor="firstName" className="input-label">
+                        <User className="label-icon" />
+                        First Name
+                      </Label>
                       <Input
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={formData.confirmPassword}
+                        id="firstName"
+                        name="firstName"
+                        value={formData.firstName}
                         onChange={handleInputChange}
-                        className="animated-input password-input"
-                        placeholder="Confirm your password"
+                        className="animated-input"
+                        placeholder="Enter your first name"
                         required
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="password-toggle"
-                      >
-                        {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
+                    </div>
+                    
+                    <div className="input-group">
+                      <Label htmlFor="lastName" className="input-label">
+                        <User className="label-icon" />
+                        Last Name
+                      </Label>
+                      <Input
+                        id="lastName"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleInputChange}
+                        className="animated-input"
+                        placeholder="Enter your last name"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="input-group">
+                      <Label htmlFor="birthDate" className="input-label">
+                        <Calendar className="label-icon" />
+                        Birth Date
+                      </Label>
+                      <Input
+                        id="birthDate"
+                        name="birthDate"
+                        type="date"
+                        value={formData.birthDate}
+                        onChange={handleInputChange}
+                        className="animated-input"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="input-group password-group">
+                      <Label htmlFor="password" className="input-label">
+                        <Lock className="label-icon" />
+                        Password
+                      </Label>
+                      <div className="password-input-container">
+                        <Input
+                          id="password"
+                          name="password"
+                          type={showPassword ? "text" : "password"}
+                          value={formData.password}
+                          onChange={handleInputChange}
+                          className="animated-input password-input"
+                          placeholder="Create a strong password"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="password-toggle"
+                        >
+                          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
+                      </div>
                     </div>
                   </div>
+                </TabsContent>
+                
+                <TabsContent value="contact" className="tab-content">
+                  <div className="input-grid">
+                    <div className="input-group">
+                      <Label htmlFor="email" className="input-label">
+                        <Mail className="label-icon" />
+                        Email Address
+                      </Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="animated-input"
+                        placeholder="Enter your email"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="input-group">
+                      <Label htmlFor="phone" className="input-label">
+                        <Phone className="label-icon" />
+                        Phone Number
+                      </Label>
+                      <Input
+                        id="phone"
+                        name="phone"
+                        type="tel"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        className="animated-input"
+                        placeholder="Enter your phone number"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="input-group">
+                      <Label htmlFor="address" className="input-label">
+                        <MapPin className="label-icon" />
+                        Address
+                      </Label>
+                      <Input
+                        id="address"
+                        name="address"
+                        value={formData.address}
+                        onChange={handleInputChange}
+                        className="animated-input"
+                        placeholder="Enter your address"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="input-group password-group">
+                      <Label htmlFor="confirmPassword" className="input-label">
+                        <Lock className="label-icon" />
+                        Confirm Password
+                      </Label>
+                      <div className="password-input-container">
+                        <Input
+                          id="confirmPassword"
+                          name="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={formData.confirmPassword}
+                          onChange={handleInputChange}
+                          className="animated-input password-input"
+                          placeholder="Confirm your password"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="password-toggle"
+                        >
+                          {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <Button 
+                  type="submit" 
+                  className="submit-button"
+                  disabled={isSubmitting || !isFormComplete()}
+                >
+                  {isSubmitting ? (
+                    <div className="loading-spinner"></div>
+                  ) : (
+                    "Create Account"
+                  )}
+                </Button>
+                
+                <div className="auth-switch">
+                  <p>Already have an account? 
+                    <Button 
+                      type="button" 
+                      variant="link" 
+                      onClick={() => setMode('login')}
+                      className="switch-button"
+                    >
+                      Sign In
+                    </Button>
+                  </p>
                 </div>
-              </TabsContent>
+              </form>
+            </Tabs>
+          )}
+
+          {/* Login Form */}
+          {mode === 'login' && (
+            <form onSubmit={handleLogin} className="form-container">
+              <div className="input-grid single-column">
+                <div className="input-group">
+                  <Label htmlFor="loginEmail" className="input-label">
+                    <Mail className="label-icon" />
+                    Email Address
+                  </Label>
+                  <Input
+                    id="loginEmail"
+                    name="email"
+                    type="email"
+                    value={loginData.email}
+                    onChange={handleLoginChange}
+                    className="animated-input"
+                    placeholder="Enter your email"
+                    required
+                  />
+                </div>
+                
+                <div className="input-group password-group">
+                  <Label htmlFor="loginPassword" className="input-label">
+                    <Lock className="label-icon" />
+                    Password
+                  </Label>
+                  <div className="password-input-container">
+                    <Input
+                      id="loginPassword"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      value={loginData.password}
+                      onChange={handleLoginChange}
+                      className="animated-input password-input"
+                      placeholder="Enter your password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="password-toggle"
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
               
               <Button 
                 type="submit" 
@@ -239,11 +470,151 @@ const RegistrationForm = () => {
                 {isSubmitting ? (
                   <div className="loading-spinner"></div>
                 ) : (
-                  "Create Account"
+                  "Sign In"
+                )}
+              </Button>
+              
+              <div className="auth-links">
+                <Button 
+                  type="button" 
+                  variant="link" 
+                  onClick={handleForgotPassword}
+                  className="forgot-button"
+                  disabled={!loginData.email}
+                >
+                  Forgot Password?
+                </Button>
+                
+                <div className="auth-switch">
+                  <p>Don't have an account? 
+                    <Button 
+                      type="button" 
+                      variant="link" 
+                      onClick={() => setMode('register')}
+                      className="switch-button"
+                    >
+                      Sign Up
+                    </Button>
+                  </p>
+                </div>
+              </div>
+            </form>
+          )}
+
+          {/* OTP Verification Form */}
+          {(mode === 'otp' || mode === 'forgot') && (
+            <form onSubmit={handleOTPVerification} className="form-container">
+              <div className="otp-container">
+                <Label className="input-label otp-label">
+                  Enter 6-digit OTP
+                </Label>
+                <InputOTP value={otp} onChange={setOtp} maxLength={6}>
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="submit-button"
+                disabled={isSubmitting || otp.length !== 6}
+              >
+                {isSubmitting ? (
+                  <div className="loading-spinner"></div>
+                ) : (
+                  "Verify OTP"
+                )}
+              </Button>
+              
+              <div className="auth-switch">
+                <Button 
+                  type="button" 
+                  variant="link" 
+                  onClick={() => setMode('login')}
+                  className="switch-button"
+                >
+                  Back to Login
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {/* Password Reset Form */}
+          {mode === 'reset' && (
+            <form onSubmit={handlePasswordReset} className="form-container">
+              <div className="input-grid single-column">
+                <div className="input-group password-group">
+                  <Label htmlFor="newPassword" className="input-label">
+                    <Lock className="label-icon" />
+                    New Password
+                  </Label>
+                  <div className="password-input-container">
+                    <Input
+                      id="newPassword"
+                      name="newPassword"
+                      type={showPassword ? "text" : "password"}
+                      value={resetData.newPassword}
+                      onChange={handleResetChange}
+                      className="animated-input password-input"
+                      placeholder="Enter new password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="password-toggle"
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="input-group password-group">
+                  <Label htmlFor="confirmNewPassword" className="input-label">
+                    <Lock className="label-icon" />
+                    Confirm New Password
+                  </Label>
+                  <div className="password-input-container">
+                    <Input
+                      id="confirmNewPassword"
+                      name="confirmPassword"
+                      type={showNewPassword ? "text" : "password"}
+                      value={resetData.confirmPassword}
+                      onChange={handleResetChange}
+                      className="animated-input password-input"
+                      placeholder="Confirm new password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="password-toggle"
+                    >
+                      {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="submit-button"
+                disabled={isSubmitting || !resetData.newPassword || !resetData.confirmPassword}
+              >
+                {isSubmitting ? (
+                  <div className="loading-spinner"></div>
+                ) : (
+                  "Reset Password"
                 )}
               </Button>
             </form>
-          </Tabs>
+          )}
         </CardContent>
       </Card>
       
@@ -619,6 +990,76 @@ const RegistrationForm = () => {
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+        
+        .single-column {
+          grid-template-columns: 1fr;
+          max-width: 400px;
+          margin: 0 auto;
+        }
+        
+        .otp-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1rem;
+          margin-bottom: 2rem;
+        }
+        
+        .otp-label {
+          font-size: 1.1rem;
+          font-weight: 600;
+          color: #002540;
+          text-align: center;
+        }
+        
+        .auth-switch {
+          text-align: center;
+          margin-top: 1.5rem;
+          color: #002540;
+        }
+        
+        .auth-switch p {
+          margin: 0;
+          font-size: 0.95rem;
+        }
+        
+        .switch-button {
+          color: #0066cc;
+          font-weight: 600;
+          padding: 0;
+          height: auto;
+          text-decoration: none;
+        }
+        
+        .switch-button:hover {
+          color: #002540;
+          text-decoration: underline;
+        }
+        
+        .auth-links {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          margin-top: 1rem;
+        }
+        
+        .forgot-button {
+          color: #0066cc;
+          font-weight: 500;
+          padding: 0;
+          height: auto;
+          text-align: center;
+        }
+        
+        .forgot-button:hover {
+          color: #002540;
+          text-decoration: underline;
+        }
+        
+        .forgot-button:disabled {
+          opacity: 0.5;
+          color: #999;
         }
         
         @media (max-width: 768px) {
