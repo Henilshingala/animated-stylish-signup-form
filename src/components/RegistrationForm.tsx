@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
@@ -39,6 +40,71 @@ const RegistrationForm = () => {
   const [otp, setOtp] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [otpEmail, setOtpEmail] = useState('');
+
+  // Location data
+  const locationData = {
+    'United States': {
+      'California': ['Los Angeles', 'San Francisco', 'San Diego', 'Sacramento', 'Oakland'],
+      'New York': ['New York City', 'Buffalo', 'Rochester', 'Syracuse', 'Albany'],
+      'Texas': ['Houston', 'Dallas', 'Austin', 'San Antonio', 'Fort Worth'],
+      'Florida': ['Miami', 'Orlando', 'Tampa', 'Jacksonville', 'Tallahassee']
+    },
+    'Canada': {
+      'Ontario': ['Toronto', 'Ottawa', 'Hamilton', 'London', 'Windsor'],
+      'Quebec': ['Montreal', 'Quebec City', 'Laval', 'Gatineau', 'Sherbrooke'],
+      'British Columbia': ['Vancouver', 'Victoria', 'Surrey', 'Burnaby', 'Richmond']
+    },
+    'United Kingdom': {
+      'England': ['London', 'Manchester', 'Birmingham', 'Liverpool', 'Leeds'],
+      'Scotland': ['Edinburgh', 'Glasgow', 'Aberdeen', 'Dundee', 'Stirling'],
+      'Wales': ['Cardiff', 'Swansea', 'Newport', 'Wrexham', 'Bangor']
+    },
+    'Australia': {
+      'New South Wales': ['Sydney', 'Newcastle', 'Wollongong', 'Albury', 'Tamworth'],
+      'Victoria': ['Melbourne', 'Geelong', 'Ballarat', 'Bendigo', 'Shepparton'],
+      'Queensland': ['Brisbane', 'Gold Coast', 'Townsville', 'Cairns', 'Toowoomba']
+    },
+    'India': {
+      'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Nashik', 'Aurangabad'],
+      'Karnataka': ['Bangalore', 'Mysore', 'Hubli', 'Mangalore', 'Belgaum'],
+      'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Salem', 'Tiruchirappalli']
+    }
+  };
+
+  // Get available states for selected country
+  const getStatesForCountry = (country: string) => {
+    return country ? Object.keys(locationData[country] || {}) : [];
+  };
+
+  // Get available cities for selected state
+  const getCitiesForState = (country: string, state: string) => {
+    return country && state ? locationData[country]?.[state] || [] : [];
+  };
+
+  // Handle location dropdown changes
+  const handleCountryChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      country: value,
+      state: '', // Reset state when country changes
+      city: ''   // Reset city when country changes
+    }));
+  };
+
+  const handleStateChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      state: value,
+      city: '' // Reset city when state changes
+    }));
+  };
+
+  const handleCityChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      city: value
+    }));
+  };
 
   // Form validation
   const getMissingFields = () => {
@@ -326,36 +392,64 @@ const RegistrationForm = () => {
                   />
                 </div>
                 
+                {/* Country Dropdown */}
                 <div className="input-group">
-                  <Label htmlFor="city" className="input-label">
+                  <Label htmlFor="country" className="input-label">
                     <MapPin className="label-icon" />
-                    City
+                    Country
                   </Label>
-                  <Input
-                    id="city"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    className="animated-input"
-                    placeholder="Enter city"
-                    required
-                  />
+                  <Select value={formData.country} onValueChange={handleCountryChange}>
+                    <SelectTrigger className="animated-input">
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                    <SelectContent className="dropdown-content">
+                      {Object.keys(locationData).map((country) => (
+                        <SelectItem key={country} value={country}>
+                          {country}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
+                {/* State Dropdown */}
                 <div className="input-group">
                   <Label htmlFor="state" className="input-label">
                     <MapPin className="label-icon" />
                     State/Province
                   </Label>
-                  <Input
-                    id="state"
-                    name="state"
-                    value={formData.state}
-                    onChange={handleInputChange}
-                    className="animated-input"
-                    placeholder="Enter state or province"
-                    required
-                  />
+                  <Select value={formData.state} onValueChange={handleStateChange} disabled={!formData.country}>
+                    <SelectTrigger className="animated-input">
+                      <SelectValue placeholder={formData.country ? "Select state" : "Select country first"} />
+                    </SelectTrigger>
+                    <SelectContent className="dropdown-content">
+                      {getStatesForCountry(formData.country).map((state) => (
+                        <SelectItem key={state} value={state}>
+                          {state}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* City Dropdown */}
+                <div className="input-group">
+                  <Label htmlFor="city" className="input-label">
+                    <MapPin className="label-icon" />
+                    City
+                  </Label>
+                  <Select value={formData.city} onValueChange={handleCityChange} disabled={!formData.state}>
+                    <SelectTrigger className="animated-input">
+                      <SelectValue placeholder={formData.state ? "Select city" : "Select state first"} />
+                    </SelectTrigger>
+                    <SelectContent className="dropdown-content">
+                      {getCitiesForState(formData.country, formData.state).map((city) => (
+                        <SelectItem key={city} value={city}>
+                          {city}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="input-group">
@@ -370,22 +464,6 @@ const RegistrationForm = () => {
                     onChange={handleInputChange}
                     className="animated-input"
                     placeholder="Enter zip code"
-                    required
-                  />
-                </div>
-                
-                <div className="input-group">
-                  <Label htmlFor="country" className="input-label">
-                    <MapPin className="label-icon" />
-                    Country
-                  </Label>
-                  <Input
-                    id="country"
-                    name="country"
-                    value={formData.country}
-                    onChange={handleInputChange}
-                    className="animated-input"
-                    placeholder="Enter country"
                     required
                   />
                 </div>
@@ -1117,6 +1195,33 @@ const RegistrationForm = () => {
         .forgot-button:disabled {
           opacity: 0.5;
           color: #999;
+        }
+        
+        .dropdown-content {
+          background: white;
+          border: 1px solid rgba(0, 37, 64, 0.2);
+          border-radius: 8px;
+          box-shadow: 0 8px 24px rgba(0, 37, 64, 0.15);
+          z-index: 50;
+          max-height: 200px;
+          overflow-y: auto;
+        }
+        
+        .dropdown-content .select-item {
+          padding: 0.75rem 1rem;
+          cursor: pointer;
+          transition: background-color 0.2s ease;
+          border-radius: 4px;
+          margin: 2px;
+        }
+        
+        .dropdown-content .select-item:hover {
+          background-color: rgba(0, 37, 64, 0.1);
+        }
+        
+        .dropdown-content .select-item[data-state="checked"] {
+          background-color: #002540;
+          color: white;
         }
         
         @media (max-width: 768px) {
